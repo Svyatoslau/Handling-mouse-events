@@ -8,18 +8,22 @@ import java.awt.geom.*;
 public class GraphicsDisplay extends JPanel {
     // Список координат точек для построения графика
     private Double[][] graphicsData;
+    private Double[][] graphicsDataInXY;
 
     // Флаговые переменные, задающие правила отображения графика
     private boolean showAxis = true;
     private boolean showMarkers = false;
     private boolean showCoordinateGrid = false;
     private boolean showLeft90DegreeRotation = false;
+    private boolean showLabelСoordinate=false;
     // Границы диапазона пространства, подлежащего отображения
     private double minX;
     private double maxX;
     private double minY;
     private double maxY;
-
+    // Текущее значение координат точки
+    private double currentX;
+    private double currentY;
     // Используемый массштаб отображения
     private double scale;
 
@@ -35,6 +39,11 @@ public class GraphicsDisplay extends JPanel {
     private Font gridFont;
 
     private int numberOfDecimalPlaces=0;
+
+    public void setShowLabelСoordinate(boolean showLabelСoordinate) {
+        this.showLabelСoordinate = showLabelСoordinate;
+        repaint();
+    }
 
     public GraphicsDisplay(){
         // Цвеет заднего фона отображения - белый
@@ -256,7 +265,7 @@ public class GraphicsDisplay extends JPanel {
 
         }
     }
-    public void turnLeft90(Graphics2D canvas){
+    protected void turnLeft90(Graphics2D canvas){
         // матрица перехода плюс смещенные координатны начальной точки
         double w=getWidth();
         double h=getHeight();
@@ -266,7 +275,7 @@ public class GraphicsDisplay extends JPanel {
     }
 
     // Реализация отображения сетки
-    public void paintCoordinateGrid(Graphics2D canvas){
+    protected void paintCoordinateGrid(Graphics2D canvas){
         // Определение цены деления по оси Y
         double lengthY = maxY-minY;
         final double divisionValueY=findDivisionValue(lengthY);
@@ -380,6 +389,32 @@ public class GraphicsDisplay extends JPanel {
             return (delS.charAt(i)-'0')*Math.pow(10,-(i-1));
         }
     }
+    // Проверка лежит ли точка в области маркера
+    public boolean currentPointIsMarker(int currentX,int currentY) {
+        for (int i=0;i<graphicsData.length;i++) {
+            Point2D.Double point = xyToPoint(graphicsData[i][0], graphicsData[i][1]);
+            if (point.getX() + 40-11 > currentX && point.getX() - 3.5-11 < currentX &&
+                    point.getY()+30 +25.5 > currentY && point.getY() +25.5 < currentY) {
+                this.currentX=graphicsData[i][0];
+                this.currentY=graphicsData[i][1];
+                return true;
+            }
+        }
+
+        return false;
+    }
+    protected void paintLabelCoordinate(Graphics2D canvas){
+        canvas.setColor(Color.BLACK);
+        canvas.setFont(gridFont);
+        FontRenderContext context = canvas.getFontRenderContext();
+        String labelCoordinate="("+stringNumberWithoutTrash(currentX)+";"+stringNumberWithoutTrash(currentY)+")";
+        Rectangle2D bounds = gridFont.getStringBounds(labelCoordinate,context);
+        Point2D.Double labelPos = xyToPoint(currentX,currentY);
+        // Вывести надписи в точке с вычисленными координатами
+        canvas.drawString(labelCoordinate,(float)labelPos.getX(),
+                (float)(labelPos.getY()-bounds.getY()));
+    }
+
     // Метод-помощник для написания числа без мусора
     //Реализация метода перерисовки компонента paintComponent()
     public void paintComponent(Graphics g) {
@@ -439,6 +474,7 @@ public class GraphicsDisplay extends JPanel {
         // Затем (если нужно) отображаються маркеры точек графика.
         if (showMarkers) paintMarkers(canvas);
         if (showCoordinateGrid) paintCoordinateGrid(canvas);
+        if (showLabelСoordinate) paintLabelCoordinate(canvas);
 
         // Шаг 9 - Восстановить старые настройки холста
         canvas.setFont(oldFont);

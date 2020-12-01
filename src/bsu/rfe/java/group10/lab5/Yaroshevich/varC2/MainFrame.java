@@ -5,6 +5,9 @@ import javax.swing.event.MenuEvent;
 import javax.swing.event.MenuListener;
 import java.awt.*;
 import java.awt.event.ActionEvent;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionListener;
+import java.awt.geom.Point2D;
 import java.io.*;
 
 public class MainFrame extends JFrame {
@@ -27,6 +30,8 @@ public class MainFrame extends JFrame {
 
     // Флаг, указывающей на загруженность данных графика
     private boolean fileLoaded = false;
+
+    // Флаг для обработчика мыши
 
     //Реализация конструктора окна MainFrame()
     public MainFrame(){
@@ -113,7 +118,20 @@ public class MainFrame extends JFrame {
         showLeft90DegreeRotationMenuItem= new JCheckBoxMenuItem(showLeft90DegreeRotationAction);
         graphicsMenu.add(showLeft90DegreeRotationMenuItem);
         showCoordinateGridMenuItem.setEnabled(false);
+        // Регистрируем события мыши
+            addMouseMotionListener(new MouseMotionListener() {
+                @Override
+                public void mouseDragged(MouseEvent e) {
 
+                }
+
+                @Override
+                public void mouseMoved(MouseEvent e) {
+                    if(fileLoaded) {
+                        display.setShowLabelСoordinate(display.currentPointIsMarker(e.getX(),e.getY()));
+                    }
+                }
+            });
         // Зарегистрировать обработчик событий, связаный с меню "График"
         graphicsMenu.addMenuListener(new GraphicsMenuListener());
         // Установить GraphicsDisplay в центр граничной компоновки
@@ -169,10 +187,10 @@ public class MainFrame extends JFrame {
 
         }
     }
-
     // Реализация класса GraphicsMenuListener являющийся внутреним
     // классом слушателем событий и реализует интерфейс MenuListener
     private class GraphicsMenuListener implements MenuListener{
+
 
         // Обработчик, вызываемый перед показом меню
         public void menuSelected(MenuEvent e){
