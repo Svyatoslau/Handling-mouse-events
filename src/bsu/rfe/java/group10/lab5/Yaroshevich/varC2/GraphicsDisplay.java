@@ -4,11 +4,11 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.font.FontRenderContext;
 import java.awt.geom.*;
+import java.util.Stack;
 
 public class GraphicsDisplay extends JPanel {
     // Список координат точек для построения графика
     private Double[][] graphicsData;
-    private Double[][] graphicsDataInXY;
 
     // Флаговые переменные, задающие правила отображения графика
     private boolean showAxis = true;
@@ -16,19 +16,32 @@ public class GraphicsDisplay extends JPanel {
     private boolean showCoordinateGrid = false;
     private boolean showLeft90DegreeRotation = false;
     private boolean showLabelСoordinate=false;
+    private boolean showApproximationBoundaries=false;
+    private boolean rightButtonPressed=false;
+    private boolean rightButtonReleased=false;
     // Границы диапазона пространства, подлежащего отображения
+
     private double minX;
     private double maxX;
     private double minY;
     private double maxY;
+
     // Текущее значение координат точки
     private double currentX;
     private double currentY;
+
+    // Текущие координаты крайних углов
+    private Coordinate currentCoordinatСorners;
+
+    // Стэк который хранит текущие масштабы
+    private Stack<Coordinate> stackCoordinate =new Stack<Coordinate>();
+
     // Используемый массштаб отображения
     private double scale;
 
     // Различные стили черчения линий
     private BasicStroke graphicsStroke;
+    private BasicStroke approximationBoundariesStroke;
     private BasicStroke axisStroke;
     private BasicStroke markerStroke;
     private BasicStroke coordinateGridStrokeAlongX;
@@ -38,10 +51,28 @@ public class GraphicsDisplay extends JPanel {
     private  Font axisFont;
     private Font gridFont;
 
+    // Число десятичных знаков после запятой
     private int numberOfDecimalPlaces=0;
+
+    public void setRightButtonReleased(boolean rightButtonReleased) {
+        this.rightButtonReleased = rightButtonReleased;
+    }
+
+    public boolean isRightButtonPressed() {
+        return rightButtonPressed;
+    }
+
+    public void setRightButtonPressed(boolean rightButtonPressed) {
+        this.rightButtonPressed = rightButtonPressed;
+    }
 
     public void setShowLabelСoordinate(boolean showLabelСoordinate) {
         this.showLabelСoordinate = showLabelСoordinate;
+        repaint();
+    }
+
+    public void setShowApproximationBoundaries(boolean showApproximationBoundaries) {
+        this.showApproximationBoundaries = showApproximationBoundaries;
         repaint();
     }
 
@@ -59,7 +90,8 @@ public class GraphicsDisplay extends JPanel {
         // Перо для риссования контуров маркером
         markerStroke = new BasicStroke(1.0f,BasicStroke.CAP_BUTT,
                 BasicStroke.JOIN_MITER,10.0f,null,0.0f);
-
+        // для границ будущего приблежения
+        approximationBoundariesStroke = new BasicStroke(2.0f,BasicStroke.CAP_BUTT,BasicStroke.JOIN_MITER,10.0f,new float[]{8,3},0.0f);
         // Шрифт для подписей координат
         axisFont = new Font("Serif",Font.BOLD,36);
         gridFont = new Font("Serif",Font.BOLD,20);
@@ -300,9 +332,10 @@ public class GraphicsDisplay extends JPanel {
         // характеристик устройства (экрана)
         FontRenderContext context = canvas.getFontRenderContext();
         // Нарисуем линии координатной сетки вдоль X
-        if(maxX>0 && minX<0&&maxY>0&&minY<0){
+        canvas.setStroke(coordinateGridStrokeAlongX);
+        if(maxX>0 && minX<0){
             //Нарисуем координатные линии вдоль X
-            canvas.setStroke(coordinateGridStrokeAlongX);
+
             Double currentCoordinateY = divisionValueY;
             while(currentCoordinateY<maxY){
                 canvas.draw(new Line2D.Double(xyToPoint(0,currentCoordinateY),xyToPoint(minX,currentCoordinateY)));
@@ -324,8 +357,22 @@ public class GraphicsDisplay extends JPanel {
                         (float)(labelPos.getY()+bounds.getY()));
                 currentCoordinateY-=divisionValueY;
             }
+        }else{
+            Double currentCoordinateY = minY;
+            while(currentCoordinateY<maxY){
+                canvas.draw(new Line2D.Double(xyToPoint(minX,currentCoordinateY),xyToPoint(maxX,currentCoordinateY)));
+                Rectangle2D bounds = gridFont.getStringBounds(stringNumberWithoutTrash(currentCoordinateY),context);
+                Point2D.Double labelPos = xyToPoint(minX,currentCoordinateY);
+                // Вывести надписи в точке с вычисленными координатами
+                canvas.drawString(stringNumberWithoutTrash(currentCoordinateY),(float)labelPos.getX()+10,
+                        (float)(labelPos.getY()-bounds.getY()));
+                currentCoordinateY+=divisionValueY;
+            }
+        }
+        canvas.setStroke(coordinateGridStrokeAlongY);
+        if(maxY>0 && minY<0){
             //Нарисуем координатнуые линни вдоль Y
-            canvas.setStroke(coordinateGridStrokeAlongY);
+
             Double currentCoordinateX = divisionValueX;
             while(currentCoordinateX<maxX){
                 canvas.draw(new Line2D.Double(xyToPoint(currentCoordinateX,0),xyToPoint(currentCoordinateX,maxY)));
@@ -347,6 +394,18 @@ public class GraphicsDisplay extends JPanel {
                         (float)labelPos.getY()-10);
                 currentCoordinateX-=divisionValueX;
             }
+        }
+        else{
+            Double currentCoordinateX = minX;
+            while(currentCoordinateX<maxX) {
+                canvas.draw(new Line2D.Double(xyToPoint(currentCoordinateX, minY), xyToPoint(currentCoordinateX, maxY)));
+                Rectangle2D bounds = gridFont.getStringBounds(stringNumberWithoutTrash(currentCoordinateX), context);
+                Point2D.Double labelPos = xyToPoint(currentCoordinateX, minY);
+                canvas.drawString(stringNumberWithoutTrash(currentCoordinateX),
+                        (float) (labelPos.getX() - bounds.getX() - 25), (float) labelPos.getY() -10);
+                currentCoordinateX += divisionValueX;
+            }
+
         }
 
     }
@@ -389,6 +448,31 @@ public class GraphicsDisplay extends JPanel {
             return (delS.charAt(i)-'0')*Math.pow(10,-(i-1));
         }
     }
+
+    // Метод для установки координат верхнего левого угла
+    public void setUpperLeftCoordinates(int screenMinX,int screenMaxY){
+        Point2D.Double coordinateXY=screenCoordinateToXY(screenMinX,screenMaxY);
+        currentCoordinatСorners=new Coordinate();
+        currentCoordinatСorners.setLeftUpperCorner(coordinateXY.getX(),coordinateXY.getY());
+    }
+
+    // Метод для установки координат нижнего правого угла
+    public void setLowerRightCoordinates(int screenMaxX,int screenMinY){
+        Point2D.Double coordinateXY=screenCoordinateToXY(screenMaxX,screenMinY);
+        currentCoordinatСorners.setRightBottomCorner(coordinateXY.getX(),coordinateXY.getY());
+        if(rightButtonReleased) {
+            stackCoordinate.push(currentCoordinatСorners);
+        }
+    }
+
+
+    // Метод помощник для преобразования координат окна в координаты XY
+    public Point2D.Double screenCoordinateToXY(int screenX,int screenY){
+        double coordinateX = minX+screenX/scale;
+        double coordinateY = maxY-screenY/scale;
+        return new Point2D.Double(coordinateX,coordinateY);
+    }
+
     // Проверка лежит ли точка в области маркера
     public boolean currentPointIsMarker(int currentX,int currentY) {
         for (int i=0;i<graphicsData.length;i++) {
@@ -414,6 +498,18 @@ public class GraphicsDisplay extends JPanel {
         canvas.drawString(labelCoordinate,(float)labelPos.getX(),
                 (float)(labelPos.getY()-bounds.getY()));
     }
+    protected void paintApproximationBoundaries(Graphics2D canvas){
+        canvas.setColor(Color.DARK_GRAY);
+        canvas.setStroke(approximationBoundariesStroke);
+        canvas.draw(new Line2D.Double(xyToPoint(currentCoordinatСorners.getMinX(),currentCoordinatСorners.getMaxY()),
+                xyToPoint(currentCoordinatСorners.getMaxX(),currentCoordinatСorners.getMaxY())));
+        canvas.draw(new Line2D.Double(xyToPoint(currentCoordinatСorners.getMinX(),currentCoordinatСorners.getMinY()),
+                xyToPoint(currentCoordinatСorners.getMaxX(),currentCoordinatСorners.getMinY())));
+        canvas.draw(new Line2D.Double(xyToPoint(currentCoordinatСorners.getMinX(),currentCoordinatСorners.getMaxY()),
+                xyToPoint(currentCoordinatСorners.getMinX(),currentCoordinatСorners.getMinY())));
+        canvas.draw(new Line2D.Double(xyToPoint(currentCoordinatСorners.getMaxX(),currentCoordinatСorners.getMaxY()),
+                xyToPoint(currentCoordinatСorners.getMaxX(),currentCoordinatСorners.getMinY())));
+    }
 
     // Метод-помощник для написания числа без мусора
     //Реализация метода перерисовки компонента paintComponent()
@@ -426,21 +522,41 @@ public class GraphicsDisplay extends JPanel {
 
         // Шаг 2 - Если данные графика не загруженны (при показе компонента
         // при запуске программы) - ничего не делать
-        if (graphicsData == null || graphicsData.length == 0) return;
-        // Шаг 3 - Определить начальные границы области отображения
-        // Её верхнмй левый угол - (minX,maxY), правый нижний - (maxX,minY)
-        minX = graphicsData[0][0];
-        maxX = graphicsData[graphicsData.length - 1][0];
-        minY = graphicsData[0][1];
-        maxY = minY;
-        // Найти минимальное и максимальное значение функции
-        for (int i = 1; i < graphicsData.length; i++) {
-            if (graphicsData[i][1] < minY) {
-                minY = graphicsData[i][1];
+        if(stackCoordinate.empty()) {
+            if (graphicsData == null || graphicsData.length == 0) return;
+            // Шаг 3 - Определить начальные границы области отображения
+            // Её верхнмй левый угол - (minX,maxY), правый нижний - (maxX,minY)
+            minX = graphicsData[0][0];
+            maxX = graphicsData[graphicsData.length - 1][0];
+            minY = graphicsData[0][1];
+            maxY = minY;
+            // Найти минимальное и максимальное значение функции
+            for (int i = 1; i < graphicsData.length; i++) {
+                if (graphicsData[i][1] < minY) {
+                    minY = graphicsData[i][1];
+                }
+                if (graphicsData[i][1] > maxY) {
+                    maxY = graphicsData[i][1];
+                }
             }
-            if (graphicsData[i][1] > maxY) {
-                maxY = graphicsData[i][1];
-            }
+            // запихиваем текущее значения в стэк
+            currentCoordinatСorners=new Coordinate(minX,maxY,maxX,minY);
+            stackCoordinate.push(currentCoordinatСorners);
+
+        }else if (stackCoordinate.size()==1){
+            Coordinate newSize=stackCoordinate.peek();
+            maxX=newSize.getMaxX();
+            minX=newSize.getMinX();
+            maxY=newSize.getMaxY();
+            minY=newSize.getMinY();
+        }else {
+            // Установка нового масштаба
+            Coordinate newSize = stackCoordinate.peek();
+            maxX = newSize.getMaxX();
+            minX = newSize.getMinX();
+            maxY = newSize.getMaxY();
+            minY = newSize.getMinY();
+
         }
         double scaleX = getSize().getWidth() / (maxX - minX);
         double scaleY = getSize().getHeight() / (maxY - minY);
@@ -457,7 +573,6 @@ public class GraphicsDisplay extends JPanel {
             maxX += xIncrement;
             minX -= xIncrement;
         }
-
         // Шаг 6 - Преобразовать экземпляр Graphics к Graphics2D
         Graphics2D canvas = (Graphics2D) g;
         // Шаг 7 - Сохранить текущие настройки холста
@@ -475,7 +590,7 @@ public class GraphicsDisplay extends JPanel {
         if (showMarkers) paintMarkers(canvas);
         if (showCoordinateGrid) paintCoordinateGrid(canvas);
         if (showLabelСoordinate) paintLabelCoordinate(canvas);
-
+        if (showApproximationBoundaries) paintApproximationBoundaries(canvas);
         // Шаг 9 - Восстановить старые настройки холста
         canvas.setFont(oldFont);
         canvas.setPaint(oldPaint);

@@ -4,11 +4,10 @@ import javax.swing.*;
 import javax.swing.event.MenuEvent;
 import javax.swing.event.MenuListener;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseMotionListener;
+import java.awt.event.*;
 import java.awt.geom.Point2D;
 import java.io.*;
+import java.util.Stack;
 
 public class MainFrame extends JFrame {
 
@@ -119,19 +118,69 @@ public class MainFrame extends JFrame {
         graphicsMenu.add(showLeft90DegreeRotationMenuItem);
         showCoordinateGridMenuItem.setEnabled(false);
         // Регистрируем события мыши
-            addMouseMotionListener(new MouseMotionListener() {
-                @Override
-                public void mouseDragged(MouseEvent e) {
+        addMouseListener(new MouseListener() {
 
-                }
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                System.out.println("Клик");
 
-                @Override
-                public void mouseMoved(MouseEvent e) {
-                    if(fileLoaded) {
-                        display.setShowLabelСoordinate(display.currentPointIsMarker(e.getX(),e.getY()));
+            }
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+                // Сравниваем нажимаеться ли правая кнопка мыши
+                if(e.getButton()==MouseEvent.BUTTON1) {
+                    System.out.println("Левая кнопка мыши зажата");
+                    if (fileLoaded) {
+                        display.setUpperLeftCoordinates(e.getX(), e.getY());
+                        display.setRightButtonPressed(true);
                     }
                 }
-            });
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                if(e.getButton()==MouseEvent.BUTTON1) {
+                    System.out.println("Левая кнопка мыши разжата");
+                    if (fileLoaded) {
+                        display.setRightButtonReleased(true);
+                        display.setLowerRightCoordinates(e.getX(), e.getY());
+                        display.repaint();
+                        display.setRightButtonPressed(false);
+                        display.setShowApproximationBoundaries(false);
+                        display.setRightButtonReleased(false);
+                    }
+                }
+            }
+
+            @Override
+            public void mouseEntered(MouseEvent e) {
+
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+
+            }
+        });
+        addMouseMotionListener(new MouseMotionListener() {
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                System.out.println("Мышь тянеться");
+                if(fileLoaded && display.isRightButtonPressed()){
+                    display.setLowerRightCoordinates(e.getX(),e.getY());
+                    display.setShowApproximationBoundaries(true);
+                }
+
+            }
+
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                if (fileLoaded) {
+                    display.setShowLabelСoordinate(display.currentPointIsMarker(e.getX(), e.getY()));
+                }
+            }
+        });
         // Зарегистрировать обработчик событий, связаный с меню "График"
         graphicsMenu.addMenuListener(new GraphicsMenuListener());
         // Установить GraphicsDisplay в центр граничной компоновки
