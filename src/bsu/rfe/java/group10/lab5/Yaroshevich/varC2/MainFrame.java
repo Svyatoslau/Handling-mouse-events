@@ -122,26 +122,33 @@ public class MainFrame extends JFrame {
 
             @Override
             public void mouseClicked(MouseEvent e) {
-                System.out.println("Клик");
+                // Проверяем нажалась ли левая кнопка мыши
+                if(e.getButton()==MouseEvent.BUTTON3 && fileLoaded){
+                    System.out.println("Правая кнопка мыши");
+                    display.zoomOutByOne();
+                }
 
             }
 
             @Override
             public void mousePressed(MouseEvent e) {
                 // Сравниваем нажимаеться ли правая кнопка мыши
-                if(e.getButton()==MouseEvent.BUTTON1) {
-                    System.out.println("Левая кнопка мыши зажата");
-                    if (fileLoaded) {
+                if (fileLoaded) {
+                    if (e.getButton() == MouseEvent.BUTTON1) {
+                        //System.out.println("Левая кнопка мыши зажата");
+
                         display.setUpperLeftCoordinates(e.getX(), e.getY());
                         display.setRightButtonPressed(true);
+
                     }
+
                 }
             }
 
             @Override
             public void mouseReleased(MouseEvent e) {
                 if(e.getButton()==MouseEvent.BUTTON1) {
-                    System.out.println("Левая кнопка мыши разжата");
+                    //System.out.println("Левая кнопка мыши разжата");
                     if (fileLoaded) {
                         display.setRightButtonReleased(true);
                         display.setLowerRightCoordinates(e.getX(), e.getY());
@@ -166,7 +173,7 @@ public class MainFrame extends JFrame {
         addMouseMotionListener(new MouseMotionListener() {
             @Override
             public void mouseDragged(MouseEvent e) {
-                System.out.println("Мышь тянеться");
+                //System.out.println("Мышь тянеться");
                 if(fileLoaded && display.isRightButtonPressed()){
                     display.setLowerRightCoordinates(e.getX(),e.getY());
                     display.setShowApproximationBoundaries(true);

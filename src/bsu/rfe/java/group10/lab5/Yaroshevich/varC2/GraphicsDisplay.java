@@ -487,6 +487,7 @@ public class GraphicsDisplay extends JPanel {
 
         return false;
     }
+    // Метод прорисовки поддписи точек графика, точнее их координат
     protected void paintLabelCoordinate(Graphics2D canvas){
         canvas.setColor(Color.BLACK);
         canvas.setFont(gridFont);
@@ -498,6 +499,8 @@ public class GraphicsDisplay extends JPanel {
         canvas.drawString(labelCoordinate,(float)labelPos.getX(),
                 (float)(labelPos.getY()-bounds.getY()));
     }
+
+    // Метод прорисовки границ новго масштабирования
     protected void paintApproximationBoundaries(Graphics2D canvas){
         canvas.setColor(Color.DARK_GRAY);
         canvas.setStroke(approximationBoundariesStroke);
@@ -509,6 +512,13 @@ public class GraphicsDisplay extends JPanel {
                 xyToPoint(currentCoordinatСorners.getMinX(),currentCoordinatСorners.getMinY())));
         canvas.draw(new Line2D.Double(xyToPoint(currentCoordinatСorners.getMaxX(),currentCoordinatСorners.getMaxY()),
                 xyToPoint(currentCoordinatСorners.getMaxX(),currentCoordinatСorners.getMinY())));
+    }
+
+    public void zoomOutByOne(){
+        if(stackCoordinate.size()>1){
+            stackCoordinate.pop();
+            repaint();
+        }
     }
 
     // Метод-помощник для написания числа без мусора
