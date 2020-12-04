@@ -21,13 +21,14 @@ public class MainFrame extends JFrame {
     private JCheckBoxMenuItem showMarkerMenuItem;
     private JCheckBoxMenuItem showCoordinateGridMenuItem;
     private JCheckBoxMenuItem showLeft90DegreeRotationMenuItem;
-
+    private JMenuItem showSaveToTextGraphicsChangesY;
+    private JMenuItem showSaveToBinaryGraphicsChangesY;
     // Компонент-отображатель графика
     private GraphicsDisplay display = new GraphicsDisplay();
 
     // Флаг, указывающей на загруженность данных графика
     private boolean fileLoaded = false;
-
+    private Double [][] graphicsData;
     // Флаг для обработчика мыши
 
     //Реализация конструктора окна MainFrame()
@@ -67,7 +68,40 @@ public class MainFrame extends JFrame {
         fileMenu.add(openGraphicsAction);
         JMenu graphicsMenu = new JMenu("График");
         menuBar.add(graphicsMenu);
+        // Создать действие по сохранению изменений
+        Action showSaveToTextGraphicsChangesYAction = new AbstractAction("Сохранить измененные значений в текстовый файл") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if(fileChooser==null){
+                    fileChooser= new JFileChooser();
+                    fileChooser.setCurrentDirectory(new File("."));
+                }
+                if (fileChooser.showSaveDialog(MainFrame.this) == JFileChooser.APPROVE_OPTION);{
+                    // Если результат его показа успешный, сохранить данные в текстовый файл
+                    saveChangeYToTextFile(fileChooser.getSelectedFile());
+                }
+            }
+        };
+        showSaveToTextGraphicsChangesY = new JMenuItem(showSaveToTextGraphicsChangesYAction);
+        fileMenu.add(showSaveToTextGraphicsChangesY);
+        showSaveToTextGraphicsChangesY.setEnabled(false);
 
+        // Действие по сохранения файла в бинарном виде
+        Action showSaveToBinaryGraphicsChangesYAction= new AbstractAction("Сохранить имененные значения в бинарном виде") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if(fileChooser==null){
+                    fileChooser=new JFileChooser();
+                    fileChooser.setCurrentDirectory(new File("."));
+                }
+                if(fileChooser.showOpenDialog(MainFrame.this)== JFileChooser.APPROVE_OPTION){
+                    saveChangeYToBinaryFile(fileChooser.getSelectedFile());
+                }
+            }
+        };
+        showSaveToBinaryGraphicsChangesY=new JMenuItem(showSaveToBinaryGraphicsChangesYAction);
+        fileMenu.add(showSaveToBinaryGraphicsChangesY);
+        showSaveToBinaryGraphicsChangesY.setEnabled(false);
         // Создать действие для реакции на активацию элемента
         // "Показывать оси координат"
         Action showAxisAction = new AbstractAction("Показывать оси координат") {
@@ -186,6 +220,8 @@ public class MainFrame extends JFrame {
                     display.setShowApproximationBoundaries(true);
                 }else if(fileLoaded && display.isLeftButtonPressed() && display.getIndexMovingPoint()!=-1){
                     display.moveGraphicsPoint(e.getX(),e.getY());
+                    showSaveToTextGraphicsChangesY.setEnabled(true);
+                    showSaveToBinaryGraphicsChangesY.setEnabled(true);
                 }
             }
 
@@ -200,6 +236,39 @@ public class MainFrame extends JFrame {
         graphicsMenu.addMenuListener(new GraphicsMenuListener());
         // Установить GraphicsDisplay в центр граничной компоновки
         getContentPane().add(display,BorderLayout.CENTER);
+    }
+    protected void saveChangeYToTextFile(File selectedFile){
+        try {
+            PrintStream out = new PrintStream(selectedFile);
+            out.println("Изменённые значения Y");
+            Double[][] changesGraphicsData=display.getGraphicsData();
+            for(int i=0;i<graphicsData.length;i++){
+                if(graphicsData[i][1]!=changesGraphicsData[i][1]){
+                    out.println("Y changes to: "+changesGraphicsData[i][1]);
+                }
+            }
+            out.println("end.");
+            out.close();
+        }catch (FileNotFoundException e){
+
+        }
+    }
+
+    protected void saveChangeYToBinaryFile(File selectedFile){
+        try {
+            DataOutputStream out = new DataOutputStream(new FileOutputStream(selectedFile));
+            for(int i=0;i< graphicsData.length;i++){
+                Double[][] changesGraphicsData=display.getGraphicsData();
+                if(graphicsData[i][1]!=changesGraphicsData[i][1]){
+                    out.writeDouble(changesGraphicsData[i][1]);
+                }
+            }
+            out.close();
+
+        }catch (Exception e){
+
+        }
+
     }
 
     // Считывания данных графика из существующего файла
@@ -230,6 +299,11 @@ public class MainFrame extends JFrame {
                 fileLoaded = true;
                 // Вызывать метод флаг отображения графика
                 display.showGraphics(graphicsData);
+                this.graphicsData=new Double[graphicsData.length][2];
+                for(int t=0;t<graphicsData.length;t++){
+                    this.graphicsData[t][0]=graphicsData[t][0];
+                    this.graphicsData[t][1]=graphicsData[t][1];
+                }
             }
             // Шаг 5 - Закрыть входной поток
             in.close();

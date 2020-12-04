@@ -36,7 +36,6 @@ public class GraphicsDisplay extends JPanel {
 
     // Стэк который хранит текущие масштабы
     private Stack<Coordinate> stackCoordinate =new Stack<Coordinate>();
-
     // Используемый массштаб отображения
     private double scale;
 
@@ -54,6 +53,10 @@ public class GraphicsDisplay extends JPanel {
 
     // Число десятичных знаков после запятой
     private int numberOfDecimalPlaces=0;
+
+    public Double[][] getGraphicsData() {
+        return graphicsData;
+    }
 
     public int getIndexMovingPoint() {
         return indexMovingPoint;
@@ -536,6 +539,7 @@ public class GraphicsDisplay extends JPanel {
         graphicsData[indexMovingPoint][1]=screenPoint.getY();
         repaint();
     }
+    // сохранение в коллекцию
 
     // Метод-помощник для написания числа без мусора
     //Реализация метода перерисовки компонента paintComponent()
