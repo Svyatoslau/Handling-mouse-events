@@ -17,8 +17,8 @@ public class GraphicsDisplay extends JPanel {
     private boolean showLeft90DegreeRotation = false;
     private boolean showLabelСoordinate=false;
     private boolean showApproximationBoundaries=false;
-    private boolean rightButtonPressed=false;
-    private boolean rightButtonReleased=false;
+    private boolean leftButtonPressed =false;
+    private boolean leftButtonReleased =false;
     // Границы диапазона пространства, подлежащего отображения
 
     private double minX;
@@ -29,6 +29,7 @@ public class GraphicsDisplay extends JPanel {
     // Текущее значение координат точки
     private double currentX;
     private double currentY;
+    private int indexMovingPoint =-1;
 
     // Текущие координаты крайних углов
     private Coordinate currentCoordinatСorners;
@@ -54,16 +55,24 @@ public class GraphicsDisplay extends JPanel {
     // Число десятичных знаков после запятой
     private int numberOfDecimalPlaces=0;
 
-    public void setRightButtonReleased(boolean rightButtonReleased) {
-        this.rightButtonReleased = rightButtonReleased;
+    public int getIndexMovingPoint() {
+        return indexMovingPoint;
     }
 
-    public boolean isRightButtonPressed() {
-        return rightButtonPressed;
+    public void setIndexMovingPoint(int indexMovingPoint) {
+        this.indexMovingPoint = indexMovingPoint;
     }
 
-    public void setRightButtonPressed(boolean rightButtonPressed) {
-        this.rightButtonPressed = rightButtonPressed;
+    public void setLeftButtonReleased(boolean leftButtonReleased) {
+        this.leftButtonReleased = leftButtonReleased;
+    }
+
+    public boolean isLeftButtonPressed() {
+        return leftButtonPressed;
+    }
+
+    public void setLeftButtonPressed(boolean leftButtonPressed) {
+        this.leftButtonPressed = leftButtonPressed;
     }
 
     public void setShowLabelСoordinate(boolean showLabelСoordinate) {
@@ -460,7 +469,7 @@ public class GraphicsDisplay extends JPanel {
     public void setLowerRightCoordinates(int screenMaxX,int screenMinY){
         Point2D.Double coordinateXY=screenCoordinateToXY(screenMaxX,screenMinY);
         currentCoordinatСorners.setRightBottomCorner(coordinateXY.getX(),coordinateXY.getY());
-        if(rightButtonReleased) {
+        if(leftButtonReleased) {
             stackCoordinate.push(currentCoordinatСorners);
         }
     }
@@ -473,19 +482,18 @@ public class GraphicsDisplay extends JPanel {
         return new Point2D.Double(coordinateX,coordinateY);
     }
 
-    // Проверка лежит ли точка в области маркера
-    public boolean currentPointIsMarker(int currentX,int currentY) {
+    // Проверка лежит ли точка в области маркера если лежит то возращает её индекс если нет то -1
+    public int currentPointIsMarker(int currentX,int currentY) {
         for (int i=0;i<graphicsData.length;i++) {
             Point2D.Double point = xyToPoint(graphicsData[i][0], graphicsData[i][1]);
             if (point.getX() + 40-11 > currentX && point.getX() - 3.5-11 < currentX &&
                     point.getY()+30 +25.5 > currentY && point.getY() +25.5 < currentY) {
                 this.currentX=graphicsData[i][0];
                 this.currentY=graphicsData[i][1];
-                return true;
+                return i;
             }
         }
-
-        return false;
+        return -1;
     }
     // Метод прорисовки поддписи точек графика, точнее их координат
     protected void paintLabelCoordinate(Graphics2D canvas){
@@ -519,6 +527,14 @@ public class GraphicsDisplay extends JPanel {
             stackCoordinate.pop();
             repaint();
         }
+    }
+
+    // Метод передвижения точки графика
+    public void moveGraphicsPoint(int screenX,int screenY){
+        // Так как нам нужно двигать точку только вверх вниз то будем менять толь y
+        Point2D.Double screenPoint = screenCoordinateToXY(screenX,screenY);
+        graphicsData[indexMovingPoint][1]=screenPoint.getY();
+        repaint();
     }
 
     // Метод-помощник для написания числа без мусора
@@ -607,7 +623,4 @@ public class GraphicsDisplay extends JPanel {
         canvas.setColor(oldColor);
         canvas.setStroke(oldStroke);
     }
-
-
-
 }

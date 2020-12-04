@@ -5,9 +5,7 @@ import javax.swing.event.MenuEvent;
 import javax.swing.event.MenuListener;
 import java.awt.*;
 import java.awt.event.*;
-import java.awt.geom.Point2D;
 import java.io.*;
-import java.util.Stack;
 
 public class MainFrame extends JFrame {
 
@@ -124,7 +122,7 @@ public class MainFrame extends JFrame {
             public void mouseClicked(MouseEvent e) {
                 // Проверяем нажалась ли левая кнопка мыши
                 if(e.getButton()==MouseEvent.BUTTON3 && fileLoaded){
-                    System.out.println("Правая кнопка мыши");
+                    //System.out.println("Правая кнопка мыши");
                     display.zoomOutByOne();
                 }
 
@@ -134,12 +132,15 @@ public class MainFrame extends JFrame {
             public void mousePressed(MouseEvent e) {
                 // Сравниваем нажимаеться ли правая кнопка мыши
                 if (fileLoaded) {
-                    if (e.getButton() == MouseEvent.BUTTON1) {
+                    if (e.getButton() == MouseEvent.BUTTON1 &&display.currentPointIsMarker(e.getX(),e.getY())==-1) {
                         //System.out.println("Левая кнопка мыши зажата");
 
                         display.setUpperLeftCoordinates(e.getX(), e.getY());
-                        display.setRightButtonPressed(true);
-
+                        display.setLeftButtonPressed(true);
+                        // Проверка являеться ли точка маркером
+                    }else if (e.getButton() == MouseEvent.BUTTON1 &&display.currentPointIsMarker(e.getX(),e.getY())!=-1){
+                        display.setIndexMovingPoint(display.currentPointIsMarker(e.getX(),e.getY()));
+                        display.setLeftButtonPressed(true);
                     }
 
                 }
@@ -149,13 +150,19 @@ public class MainFrame extends JFrame {
             public void mouseReleased(MouseEvent e) {
                 if(e.getButton()==MouseEvent.BUTTON1) {
                     //System.out.println("Левая кнопка мыши разжата");
-                    if (fileLoaded) {
-                        display.setRightButtonReleased(true);
+                    if (fileLoaded && display.getIndexMovingPoint()==-1) {
+                        display.setLeftButtonReleased(true);
                         display.setLowerRightCoordinates(e.getX(), e.getY());
                         display.repaint();
-                        display.setRightButtonPressed(false);
+                        display.setLeftButtonPressed(false);
                         display.setShowApproximationBoundaries(false);
-                        display.setRightButtonReleased(false);
+                        display.setLeftButtonReleased(false);
+
+                    }else if(fileLoaded && display.getIndexMovingPoint()!=-1){
+                        display.setLeftButtonReleased(true);
+                        display.setIndexMovingPoint(-1);
+                        display.setLeftButtonPressed(false);
+                        display.setLeftButtonReleased(false);
                     }
                 }
             }
@@ -174,17 +181,18 @@ public class MainFrame extends JFrame {
             @Override
             public void mouseDragged(MouseEvent e) {
                 //System.out.println("Мышь тянеться");
-                if(fileLoaded && display.isRightButtonPressed()){
-                    display.setLowerRightCoordinates(e.getX(),e.getY());
+                if(fileLoaded && display.isLeftButtonPressed() && display.getIndexMovingPoint()==-1) {
+                    display.setLowerRightCoordinates(e.getX(), e.getY());
                     display.setShowApproximationBoundaries(true);
+                }else if(fileLoaded && display.isLeftButtonPressed() && display.getIndexMovingPoint()!=-1){
+                    display.moveGraphicsPoint(e.getX(),e.getY());
                 }
-
             }
 
             @Override
             public void mouseMoved(MouseEvent e) {
                 if (fileLoaded) {
-                    display.setShowLabelСoordinate(display.currentPointIsMarker(e.getX(), e.getY()));
+                    display.setShowLabelСoordinate(display.currentPointIsMarker(e.getX(), e.getY())!=-1);
                 }
             }
         });
@@ -230,7 +238,7 @@ public class MainFrame extends JFrame {
             // В случае исключительной ситуации типа "Файл не найден"
             // показать сообщение об ошибке
             JOptionPane.showMessageDialog(MainFrame.this,
-                    "Указанный метод не найден","Ощибка загрузки",JOptionPane.WARNING_MESSAGE);
+                    "Указанный метод не найден","Ошибка загрузки",JOptionPane.WARNING_MESSAGE);
             return;
         }
         catch (IOException ex){
