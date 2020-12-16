@@ -1,0 +1,352 @@
+package bsu.rfe.java.group10.lab5.Yaroshevich.varC2;
+
+import javax.swing.*;
+import javax.swing.event.MenuEvent;
+import javax.swing.event.MenuListener;
+import java.awt.*;
+import java.awt.event.*;
+import java.io.*;
+
+public class MainFrame extends JFrame {
+
+    // Начальные размеры окна
+    private static final int WIDTH = 800;
+    private static final int HEIGHT = 600;
+
+    // Объект диалогового окна для выбора файлов
+    private JFileChooser fileChooser = null;
+
+    // Пункты меню
+    private JCheckBoxMenuItem showAxisMenuItem;
+    private JCheckBoxMenuItem showMarkerMenuItem;
+    private JCheckBoxMenuItem showCoordinateGridMenuItem;
+    private JCheckBoxMenuItem showLeft90DegreeRotationMenuItem;
+    private JMenuItem showSaveToTextGraphicsChangesY;
+    private JMenuItem showSaveToBinaryGraphicsChangesY;
+    // Компонент-отображатель графика
+    private GraphicsDisplay display = new GraphicsDisplay();
+
+    // Флаг, указывающей на загруженность данных графика
+    private boolean fileLoaded = false;
+    private Double [][] graphicsData;
+    // Флаг для обработчика мыши
+
+    //Реализация конструктора окна MainFrame()
+    public MainFrame(){
+
+        super("Построение графиков функций на основе подготовленных файлов");
+        // Установка размеров окна
+        setSize(WIDTH,HEIGHT);
+        Toolkit kit = Toolkit.getDefaultToolkit();
+        // Отцентрировать окно приложения на экране
+        setLocation((kit.getScreenSize().width-WIDTH)/2,
+                (kit.getScreenSize().height-HEIGHT)/2);
+        // Развёртывания окна на весь экран
+        setExtendedState(MAXIMIZED_BOTH);
+
+        // Конструирования полосы меню
+        // Создать и установить полосу меню
+        JMenuBar menuBar = new JMenuBar();
+        setJMenuBar(menuBar);
+        // Добавить пункт "файл"
+        JMenu fileMenu = new JMenu("Файл");
+        menuBar.add(fileMenu);
+
+        // Создать действие по открытию файла
+        Action openGraphicsAction = new AbstractAction("Открыть файл") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if(fileChooser==null){
+                    fileChooser = new JFileChooser();
+                    fileChooser.setCurrentDirectory(new File("."));
+                }
+                if(fileChooser.showOpenDialog(MainFrame.this)==JFileChooser.APPROVE_OPTION)
+                    openGraphics(fileChooser.getSelectedFile());
+            }
+        };
+        // Добавить соответсвубщий пункт меню
+        fileMenu.add(openGraphicsAction);
+        JMenu graphicsMenu = new JMenu("График");
+        menuBar.add(graphicsMenu);
+        // Создать действие по сохранению изменений
+        Action showSaveToTextGraphicsChangesYAction = new AbstractAction("Сохранить измененные значений в текстовый файл") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if(fileChooser==null){
+                    fileChooser= new JFileChooser();
+                    fileChooser.setCurrentDirectory(new File("."));
+                }
+                if (fileChooser.showSaveDialog(MainFrame.this) == JFileChooser.APPROVE_OPTION);{
+                    // Если результат его показа успешный, сохранить данные в текстовый файл
+                    saveChangeYToTextFile(fileChooser.getSelectedFile());
+                }
+            }
+        };
+        showSaveToTextGraphicsChangesY = new JMenuItem(showSaveToTextGraphicsChangesYAction);
+        fileMenu.add(showSaveToTextGraphicsChangesY);
+        showSaveToTextGraphicsChangesY.setEnabled(false);
+
+        // Действие по сохранения файла в бинарном виде
+        Action showSaveToBinaryGraphicsChangesYAction= new AbstractAction("Сохранить имененные значения в бинарном виде") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if(fileChooser==null){
+                    fileChooser=new JFileChooser();
+                    fileChooser.setCurrentDirectory(new File("."));
+                }
+                if(fileChooser.showOpenDialog(MainFrame.this)== JFileChooser.APPROVE_OPTION){
+                    saveChangeYToBinaryFile(fileChooser.getSelectedFile());
+                }
+            }
+        };
+        showSaveToBinaryGraphicsChangesY=new JMenuItem(showSaveToBinaryGraphicsChangesYAction);
+        fileMenu.add(showSaveToBinaryGraphicsChangesY);
+        showSaveToBinaryGraphicsChangesY.setEnabled(false);
+        // Создать действие для реакции на активацию элемента
+        // "Показывать оси координат"
+        Action showAxisAction = new AbstractAction("Показывать оси координат") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // свойство showAxis класса GraphicsDisplay истина,
+                // если элемент меню showAxisMenuItem отмечен флажком,
+                // ложь - в противном случае
+                display.setShowAxis(showAxisMenuItem.isSelected());
+            }
+        };
+        showAxisMenuItem = new JCheckBoxMenuItem(showAxisAction);
+        graphicsMenu.add(showAxisMenuItem);
+        showAxisMenuItem.setSelected(true);
+
+        // Создать тоже самое для "Показывать маркеры точек"
+        Action showMarkersAction = new AbstractAction("Показывать маркеры точек") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                display.setShowMarkers(showMarkerMenuItem.isSelected());
+            }
+        };
+        showMarkerMenuItem = new JCheckBoxMenuItem(showMarkersAction);
+        graphicsMenu.add(showMarkerMenuItem);
+        showMarkerMenuItem.setSelected(false);
+
+        // Создать действие для рекции на "Показывать координатную сетку"
+        Action showCoordinateGridAction = new AbstractAction("Показывать координатную сетку") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                display.setShowCoordinateGrid(showCoordinateGridMenuItem.isSelected());
+            }
+        };
+        showCoordinateGridMenuItem = new JCheckBoxMenuItem(showCoordinateGridAction);
+        graphicsMenu.add(showCoordinateGridMenuItem);
+        showCoordinateGridMenuItem.setEnabled(false);
+
+        // Создать действие для "Повернуть график на 90 градусов налево"
+        Action showLeft90DegreeRotationAction = new AbstractAction("Повернуть график на 90 градусов налево") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                display.setShowLeft90DegreeRotation(showLeft90DegreeRotationMenuItem.isSelected());
+            }
+        };
+        showLeft90DegreeRotationMenuItem= new JCheckBoxMenuItem(showLeft90DegreeRotationAction);
+        graphicsMenu.add(showLeft90DegreeRotationMenuItem);
+        showCoordinateGridMenuItem.setEnabled(false);
+        // Регистрируем события мыши
+        addMouseListener(new MouseListener() {
+
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                // Проверяем нажалась ли левая кнопка мыши
+                if(e.getButton()==MouseEvent.BUTTON3 && fileLoaded){
+                    //System.out.println("Правая кнопка мыши");
+                    display.zoomOutByOne();
+                }
+
+            }
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+                // Сравниваем нажимаеться ли правая кнопка мыши
+                if (fileLoaded) {
+                    if (e.getButton() == MouseEvent.BUTTON1 &&display.currentPointIsMarker(e.getX(),e.getY())==-1) {
+                        //System.out.println("Левая кнопка мыши зажата");
+
+                        display.setUpperLeftCoordinates(e.getX(), e.getY());
+                        display.setLeftButtonPressed(true);
+                        // Проверка являеться ли точка маркером
+                    }else if (e.getButton() == MouseEvent.BUTTON1 &&display.currentPointIsMarker(e.getX(),e.getY())!=-1){
+                        display.setIndexMovingPoint(display.currentPointIsMarker(e.getX(),e.getY()));
+                        display.setLeftButtonPressed(true);
+                    }
+
+                }
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                if(e.getButton()==MouseEvent.BUTTON1) {
+                    //System.out.println("Левая кнопка мыши разжата");
+                    if (fileLoaded && display.getIndexMovingPoint()==-1) {
+                        display.setLeftButtonReleased(true);
+                        display.setLowerRightCoordinates(e.getX(), e.getY());
+                        display.repaint();
+                        display.setLeftButtonPressed(false);
+                        display.setShowApproximationBoundaries(false);
+                        display.setLeftButtonReleased(false);
+
+                    }else if(fileLoaded && display.getIndexMovingPoint()!=-1){
+                        display.setLeftButtonReleased(true);
+                        display.setIndexMovingPoint(-1);
+                        display.setLeftButtonPressed(false);
+                        display.setLeftButtonReleased(false);
+                    }
+                }
+            }
+
+            @Override
+            public void mouseEntered(MouseEvent e) {
+
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+
+            }
+        });
+        addMouseMotionListener(new MouseMotionListener() {
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                //System.out.println("Мышь тянеться");
+                if(fileLoaded && display.isLeftButtonPressed() && display.getIndexMovingPoint()==-1) {
+                    display.setLowerRightCoordinates(e.getX(), e.getY());
+                    display.setShowApproximationBoundaries(true);
+                }else if(fileLoaded && display.isLeftButtonPressed() && display.getIndexMovingPoint()!=-1){
+                    display.moveGraphicsPoint(e.getX(),e.getY());
+                    showSaveToTextGraphicsChangesY.setEnabled(true);
+                    showSaveToBinaryGraphicsChangesY.setEnabled(true);
+                }
+            }
+
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                if (fileLoaded) {
+                    display.setShowLabelСoordinate(display.currentPointIsMarker(e.getX(), e.getY())!=-1);
+                }
+            }
+        });
+        // Зарегистрировать обработчик событий, связаный с меню "График"
+        graphicsMenu.addMenuListener(new GraphicsMenuListener());
+        // Установить GraphicsDisplay в центр граничной компоновки
+        getContentPane().add(display,BorderLayout.CENTER);
+    }
+    protected void saveChangeYToTextFile(File selectedFile){
+        try {
+            PrintStream out = new PrintStream(selectedFile);
+            out.println("Изменённые значения Y");
+            Double[][] changesGraphicsData=display.getGraphicsData();
+            for(int i=0;i<graphicsData.length;i++){
+                if(graphicsData[i][1]!=changesGraphicsData[i][1]){
+                    out.println("Y changes to: "+changesGraphicsData[i][1]);
+                }
+            }
+            out.println("end.");
+            out.close();
+        }catch (FileNotFoundException e){
+
+        }
+    }
+
+    protected void saveChangeYToBinaryFile(File selectedFile){
+        try {
+            DataOutputStream out = new DataOutputStream(new FileOutputStream(selectedFile));
+            for(int i=0;i< graphicsData.length;i++){
+                Double[][] changesGraphicsData=display.getGraphicsData();
+                if(graphicsData[i][1]!=changesGraphicsData[i][1]){
+                    out.writeDouble(changesGraphicsData[i][1]);
+                }
+            }
+            out.close();
+
+        }catch (Exception e){
+
+        }
+
+    }
+
+    // Считывания данных графика из существующего файла
+    protected void openGraphics(File selectedFile){
+        try{
+            // Шаг 1 - открыть поток чтения данных, связанный с файлом
+            DataInputStream in = new DataInputStream(new FileInputStream(selectedFile));
+            /* Шаг 2 - Зная объём данных в потоке ввода можно вычислить,
+            сколько памяти нужно зарезервировать в массиве:
+            Всего байт в потоке - in.available() байт;
+            Размер числа Double - Double.SIZE бит, или Double.SIZE/8 в байт;
+            Так как числа записываються парами, то число пар меньше в 2 раза
+             */
+            Double[][] graphicsData = new Double[in.available()/(Double.SIZE/8)/2][];
+            // Шаг 3 - Цикл чтения данных (пока в потоке есть данные)
+            int i=0;
+            while (in.available()>0){
+                // Первой из потока читаеться координата точки X
+                Double x = in.readDouble();
+                // Затем - значения графика Y в точке X
+                Double y = in.readDouble();
+                // Прочитанная пара координат добавляеться в массив
+                graphicsData[i++] = new Double[]{x,y};
+            }
+            // Шаг 4 - Проверка, имееться ли в списке в результате чтения хотя бы одна пара координат
+            if(graphicsData!=null && graphicsData.length>0){
+                // Да - установить флаг загруженности данных
+                fileLoaded = true;
+                // Вызывать метод флаг отображения графика
+                display.showGraphics(graphicsData);
+                this.graphicsData=new Double[graphicsData.length][2];
+                for(int t=0;t<graphicsData.length;t++){
+                    this.graphicsData[t][0]=graphicsData[t][0];
+                    this.graphicsData[t][1]=graphicsData[t][1];
+                }
+            }
+            // Шаг 5 - Закрыть входной поток
+            in.close();
+
+        }catch (FileNotFoundException ex){
+            // В случае исключительной ситуации типа "Файл не найден"
+            // показать сообщение об ошибке
+            JOptionPane.showMessageDialog(MainFrame.this,
+                    "Указанный метод не найден","Ошибка загрузки",JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        catch (IOException ex){
+            // В случае ошибки ввода из файлового потока
+            // Показать сообщение об ошибке
+            JOptionPane.showMessageDialog(MainFrame.this,
+                    "Ошибка чтения координат точек из файла","Ошибка загрузки данных",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+
+        }
+    }
+    // Реализация класса GraphicsMenuListener являющийся внутреним
+    // классом слушателем событий и реализует интерфейс MenuListener
+    private class GraphicsMenuListener implements MenuListener{
+
+
+        // Обработчик, вызываемый перед показом меню
+        public void menuSelected(MenuEvent e){
+            // Доступность или недоступность элементов меню "График"
+            // определяться загруженностью данных
+            showAxisMenuItem.setEnabled(fileLoaded);
+            showMarkerMenuItem.setEnabled(fileLoaded);
+            showCoordinateGridMenuItem.setEnabled(fileLoaded);
+            showLeft90DegreeRotationMenuItem.setEnabled(fileLoaded);
+        }
+
+        // Обработчик, вызываемый после того, как меню исчезло с экрана
+        public void menuDeselected(MenuEvent e){
+        }
+
+        // Обработчик, вызываемый в случае отмены выбора пункта меню
+        // (очень редкая ситуация)
+        public void menuCanceled(MenuEvent e){
+        }
+    }
+}
